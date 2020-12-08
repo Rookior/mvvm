@@ -6,14 +6,12 @@
     <title>mvvm</title>
 </head>
 <body>
-    <div id="app">
-        <h1 id="name"></h1>
-        <p id="age"></p>
-    </div>
+  
+        <h1 id="name"></h1>      
+   
    
 
-    <!-- 设置一个修改变化 -->
-    <input type="text" id="input" value="18" />
+    
 
     <script>
         function observe(data) {
@@ -80,53 +78,38 @@
             },
         } 
 
-        // 简单实例化
-        // var library = {
-        //     book1: '123'
-        // };
-        // observe(library);
-        // new Watcher({data:library}, 'book1', function (value,oldVal) {
-        //     console.log("监听book1变化为" + oldVal + '->' + value)
-        //     document.querySelector('#name').innerHTML = value;
-        // });
-  
-        // library.book1 = 'hello world'; // 属性name已经被监听了，现在值为：“vue权威指南”
-        // window.setTimeout(function () {
-        //     library.book1 = 'wzy';
-        // }, 2000);
-
-        // 定义函数，进行实例化
         function SelfVue (data, el, exp) {
+            var self = this;
             this.data = data;
+            // 定义 selfVue.name === self.data.name
+            Object.keys(data).forEach(function(key) {
+                Object.defineProperty(self, key, {
+                    enumerable: false,
+                    configurable: true,
+                    get: function proxyGetter() {
+                        return self.data[key];
+                    },
+                    set: function proxySetter(newVal) {
+                        self.data[key] = newVal;
+                    }
+                });
+            });
             observe(data);
-
-            /*后面可以将此处增加词法解析以及定义操作函数更新视图！！！！！！！start
-            */
             el.innerHTML = this.data[exp];  // 初始化模板数据的值
-            new Watcher(this, exp, function (value) { 
-                //测试 增加下面一句代码实现控制台修改数据 selfVue.data.age 同步更新到input
-                //document.getElementById('input').value = value             
+            new Watcher(this, exp, function (value) {
                 el.innerHTML = value;
             });
-            // 后面可以将此处增加词法解析以及定义操作函数更新视图！！！！！！！end
-
             return this;
         }
-        var ele = document.querySelector('#age');
-        var selfVue = new SelfVue({
-            age: '18'
-        }, ele, 'age');
 
-        // 固定更新数据
-        // window.setTimeout(function () {
-        //     selfVue.data.age = '100';
-        // }, 2000);
-        
-        // 输入框更新数据
-        var input = document.getElementById('input');
-        input.addEventListener('keyup', function(){
-            selfVue.data.age = input.value
-        })  
+        var ele = document.querySelector('#name');
+        var selfVue = new SelfVue({
+            name: 'hello world'
+        }, ele, 'name');
+    
+        window.setTimeout(function () {
+            selfVue.name = 'wzy';
+        }, 2000);
         
     </script>
    
