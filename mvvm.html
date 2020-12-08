@@ -8,7 +8,9 @@
 <body>
    <div id="app">
         <h1 id="name">{{name}}</h1>   
-        <h1 id="name">{{age}}</h1>   
+        <h1 id="name">{{age}}</h1> 
+        <input type="text" v-model="name" />  
+        <p v-html="someHTML"></p>
    </div>
             
     <script>
@@ -140,7 +142,10 @@
                     var reg = /\{\{\s*(.*?)\s*\}\}/;
                     var text = node.textContent;
                 
-                    
+                    // 节点解析
+                    if (self.isElementNode(node)) {
+                        self.compile(node);
+                    } 
                     // {{文本}}解析
                     if (self.isTextNode(node) && reg.test(text)) {  // 判断是否是符合这种形式{{}}的指令
                         self.compileText(node, reg.exec(text)[1]);
@@ -150,6 +155,21 @@
                         self.compileElement(node);
                     }
                  
+                });
+            },
+            compile: function(node) {
+                var nodeAttrs = node.attributes,
+                me = this;
+                [].slice.call(nodeAttrs).forEach(function(attr) {
+                    var attrName = attr.name;
+                    if (me.isDirective(attrName)) {  //判断是v-开头
+                        var exp = attr.value;
+                        var dir = attrName.substring(2);
+                   
+                            compileUtil[dir] && compileUtil[dir](node, me.vm, exp);
+                                            
+                        node.removeAttribute(attrName);
+                    }
                 });
             },
             compileText: function(node, exp) {
@@ -164,16 +184,74 @@
             updateText: function (node, value) {
                 node.textContent = typeof value == 'undefined' ? '' : value;  //node.textContent设置文本节点的文本内容
             },
+            isDirective: function(attr) {
+                return attr.indexOf('v-') == 0;
+            },
+            isElementNode: function(node) {
+                return node.nodeType == 1;
+            },
             isTextNode: function(node) {
                 return node.nodeType == 3;  //代表元素或属性中的文本内容。
             }
         }
+        // 指令处理集合
+        var compileUtil = {
+            model: function(node, vm, exp) {
+                this.bind(node, vm, exp, 'model');
+                var me = this;
+                node.addEventListener('input', function(e) {
+                    var newValue = e.target.value;
+                    me._setVMVal(vm, exp, newValue);                 
+                });             
+            },
+            html: function(node, vm, exp) {
+                this.bind(node, vm, exp, 'html');
+            },
+            bind: function(node, vm, exp, dir) {
+                var updaterFn = updater[dir + 'Updater'];
+
+                updaterFn && updaterFn(node, this._getVMVal(vm, exp));
+
+                new Watcher(vm, exp, function(value, oldValue) {
+                    updaterFn && updaterFn(node, value, oldValue);
+                });
+            },
+            _getVMVal: function(vm, exp) {
+                var val = vm;
+                exp = exp.split('.');
+                exp.forEach(function(k) {
+                    val = val[k];
+                });
+                return val;
+            },
+            _setVMVal: function(vm, exp, value) {
+                var val = vm;
+                exp = exp.split('.');
+                exp.forEach(function(k, i) {
+                    // 非最后一个key，更新val的值
+                    if (i < exp.length - 1) {
+                        val = val[k];
+                    } else {
+                        val[k] = value;
+                    }
+                });
+            }
+        }
+        var updater = {
+            modelUpdater: function(node, value, oldValue) {
+                node.value = typeof value == 'undefined' ? '' : value;
+            },
+            htmlUpdater: function(node, value) {
+                node.innerHTML = typeof value == 'undefined' ? '' : value;
+            },
+        };
 
         var selfVue = new SelfVue({
             el: '#app',
             data:{
                 name: 'hello world',
-                age:18
+                age:18,
+                someHTML:'<span style="color:red">我是html</span>'
             }
         });
         window.setTimeout(function () {
