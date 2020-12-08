@@ -31,18 +31,24 @@ Compile.prototype = {
         var childNodes = el.childNodes,
             me = this;
 
+         
+
         [].slice.call(childNodes).forEach(function(node) {
+
             var text = node.textContent;
             var reg = /\{\{(.*)\}\}/;
 
             if (me.isElementNode(node)) {
+                console.log("node",node)
                 me.compile(node);
 
             } else if (me.isTextNode(node) && reg.test(text)) {
+                console.log("isTextNode",node)
                 me.compileText(node, RegExp.$1.trim());
             }
 
             if (node.childNodes && node.childNodes.length) {
+               
                 me.compileElement(node);
             }
         });
